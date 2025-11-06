@@ -38,13 +38,15 @@
       box-shadow:0 0 0 1px var(--stroke-strong),0 10px 24px rgba(243,176,20,.12);
     }
     #pro-card{
-      background:radial-gradient(1200px 400px at 100% 0%, rgba(243,176,20,.08), transparent 60%),linear-gradient(180deg, rgba(255,255,255,.04), transparent 30%);
+      background:radial-gradient(1200px 400px at 100% 0%, rgba(243,176,20,.08), transparent 60%),
+                 linear-gradient(180deg, rgba(255,255,255,.04), transparent 30%);
       border:1px solid rgba(243,176,20,.35);
       box-shadow:0 0 0 1px rgba(243,176,20,.25),0 12px 28px rgba(243,176,20,.18),inset 0 1px 0 rgba(255,255,255,.06);
     }
     .hh-head{display:flex;justify-content:space-between;align-items:flex-end;}
     .hh-title{font-size:1rem;font-weight:800;color:#fff;margin:0;}
-    .hh-pill{font-size:.75rem;padding:.25rem .6rem;border-radius:999px;color:var(--accent);background:rgba(243,176,20,.14);border:1px solid rgba(243,176,20,.35);font-weight:700;}
+    .hh-pill{font-size:.75rem;padding:.25rem .6rem;border-radius:999px;color:var(--accent);
+      background:rgba(243,176,20,.14);border:1px solid rgba(243,176,20,.35);font-weight:700;}
     .sub{color:var(--muted);font-size:.9rem;}
     .input-group-text{background:transparent;color:#fff;border-color:var(--stroke);}
     .form-control{background:rgba(255,255,255,.06)!important;color:#fff!important;border-color:var(--stroke);}
@@ -53,15 +55,14 @@
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;}
     .label-sm{color:var(--muted);font-size:.85rem;}
     .val{font-weight:700;}
-    #std-total,#pro-total{
+    #old-total,#new-total{
       background:var(--accent);color:#111;
       padding:2px 10px;border-radius:10px;font-weight:900;
       box-shadow:0 0 0 1px rgba(0,0,0,.25),0 4px 16px rgba(243,176,20,.25);
     }
     .ribbon{
-      position:absolute;top:85px;right:10px;background:var(--accent);
-      color:#111;font-weight:900;padding:6px 10px;border-radius:999px;
-      box-shadow:0 6px 16px rgba(243,176,20,.3);font-size:.9rem;
+      position:absolute;top:85px;right:10px;background:var(--accent);color:#111;font-weight:900;
+      padding:6px 10px;border-radius:999px;box-shadow:0 6px 16px rgba(243,176,20,.3);font-size:.9rem;
     }
     .save-wrap{border:1px dashed var(--accent);background:rgba(243,176,20,.10);border-radius:10px;padding:10px;}
     .save-fig{font-weight:900;font-size:1.25rem;}
@@ -177,84 +178,79 @@
 </div>
 
 <script>
-// Utils
-const fmtMoney=v=>isFinite(v)?new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v):'—';
-const fmtPct=v=>isFinite(v)?(v).toFixed(2).replace('.',',')+'%':'—';
-const parseNum=s=>{
-  if(typeof s!=='string') return Number(s)||0;
-  return parseFloat(s.replace(/\\./g,'').replace(/,/g,'.').replace(/[^\\d.\\-]/g,''))||0;
-};
-const monthlyPayment=(P,annual,years)=>{
-  const r=annual/12, n=years*12;
-  if(!isFinite(P)||P<=0||!isFinite(annual)||years<=0) return 0;
-  return r===0?P/n:P*r/(1-Math.pow(1+r,-n));
-};
+(function(){
+  // Utils
+  const fmtMoney=v=>isFinite(v)?new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v):'—';
+  const fmtPct=v=>isFinite(v)?(Number(v)).toFixed(2).replace('.',',')+'%':'—';
+  const parseNum=s=>{
+    if(typeof s!=='string') return Number(s)||0;
+    return parseFloat(s.replace(/\./g,'').replace(/,/g,'.').replace(/[^\d.\-]/g,''))||0;
+  };
+  const monthlyPayment=(P,annual,years)=>{
+    const r=annual/12, n=years*12;
+    if(!isFinite(P)||P<=0||!isFinite(annual)||years<=0) return 0;
+    return r===0?P/n:P*r/(1-Math.pow(1+r,-n));
+  };
 
-// DOM
-const $=id=>document.getElementById(id);
-const inputs=['capPend','yearsLeft','tinOld','tinNew','feePct','otherCosts'].map(id=>$(id));
+  const $=id=>document.getElementById(id);
+  const ids=['capPend','yearsLeft','tinOld','tinNew','feePct','otherCosts'];
+  const els=ids.map($);
+  // Si algún input no existe, no seguimos (evita errores silenciosos)
+  if(els.some(el=>!el)){ console.error('Faltan inputs esperados'); return; }
 
-function computeAll(){
-  // Leer entradas
-  const capital = parseNum($('capPend').value || '150000');
-  const years   = Math.max(1, Math.min(40, parseInt($('yearsLeft').value || '25',10)));
-  const tinOld  = parseNum($('tinOld').value || '3')/100;
-  const tinNew  = parseNum($('tinNew').value || '2.1')/100;
-  const feePct  = parseNum($('feePct').value || '0.15')/100;
-  const other   = parseNum($('otherCosts').value || '900');
+  function computeAll(){
+    const capital = parseNum($('capPend').value || '150000');
+    const years   = Math.max(1, Math.min(40, parseInt($('yearsLeft').value || '25',10)));
+    const tinOld  = parseNum($('tinOld').value || '3')/100;
+    const tinNew  = parseNum($('tinNew').value || '2.1')/100;
+    const feePct  = parseNum($('feePct').value || '0.15')/100;
+    const other   = parseNum($('otherCosts').value || '900');
 
-  // Actual
-  const oldPay = monthlyPayment(capital, tinOld, years);
-  const oldInterest = oldPay*years*12 - capital;
-  const oldFees = 0; // mantener no añade gastos
-  const oldTotal = capital + oldInterest + oldFees;
+    const oldPay = monthlyPayment(capital, tinOld, years);
+    const oldInterest = oldPay*years*12 - capital;
+    const oldFees = 0;
+    const oldTotal = capital + oldInterest + oldFees;
 
-  // Nueva subrogación
-  const newPay = monthlyPayment(capital, tinNew, years);
-  const newInterest = newPay*years*12 - capital;
-  const newFees = capital*feePct + other;
-  const newTotal = capital + newInterest + newFees;
+    const newPay = monthlyPayment(capital, tinNew, years);
+    const newInterest = newPay*years*12 - capital;
+    const newFees = capital*feePct + other;
+    const newTotal = capital + newInterest + newFees;
 
-  // Render Actual
-  $('old-monthly').textContent = fmtMoney(oldPay);
-  $('old-sub').textContent = `TIN ${fmtPct(tinOld*100)} · Plazo ${years} años · Capital ${fmtMoney(capital)}`;
-  $('old-capital').textContent = fmtMoney(capital);
-  $('old-interest').textContent = fmtMoney(oldInterest);
-  $('old-fees').textContent = fmtMoney(oldFees);
-  $('old-total').textContent = fmtMoney(oldTotal);
+    $('old-monthly').textContent = fmtMoney(oldPay);
+    $('old-sub').textContent = `TIN ${fmtPct(tinOld*100)} · Plazo ${years} años · Capital ${fmtMoney(capital)}`;
+    $('old-capital').textContent = fmtMoney(capital);
+    $('old-interest').textContent = fmtMoney(oldInterest);
+    $('old-fees').textContent = fmtMoney(oldFees);
+    $('old-total').textContent = fmtMoney(oldTotal);
 
-  // Render Nueva
-  $('new-monthly').textContent = fmtMoney(newPay);
-  $('new-sub').textContent = `TIN ${fmtPct(tinNew*100)} · Plazo ${years} años · Capital ${fmtMoney(capital)}`;
-  $('new-capital').textContent = fmtMoney(capital);
-  $('new-interest').textContent = fmtMoney(newInterest);
-  $('new-fees').textContent = fmtMoney(newFees);
-  $('new-total').textContent = fmtMoney(newTotal);
+    $('new-monthly').textContent = fmtMoney(newPay);
+    $('new-sub').textContent = `TIN ${fmtPct(tinNew*100)} · Plazo ${years} años · Capital ${fmtMoney(capital)}`;
+    $('new-capital').textContent = fmtMoney(capital);
+    $('new-interest').textContent = fmtMoney(newInterest);
+    $('new-fees').textContent = fmtMoney(newFees);
+    $('new-total').textContent = fmtMoney(newTotal);
 
-  // Ahorros
-  const saveTotal = Math.max(0, oldTotal - newTotal);
-  const saveMonth = Math.max(0, oldPay - newPay);
-  $('save-total').textContent = fmtMoney(saveTotal);
-  $('save-month').textContent = fmtMoney(saveMonth);
-  $('ribbon-save').textContent = `Ahorro: ${fmtMoney(saveTotal)}`;
-}
+    const saveTotal = Math.max(0, oldTotal - newTotal);
+    const saveMonth = Math.max(0, oldPay - newPay);
+    $('save-total').textContent = fmtMoney(saveTotal);
+    $('save-month').textContent = fmtMoney(saveMonth);
+    $('ribbon-save').textContent = `Ahorro: ${fmtMoney(saveTotal)}`;
+  }
 
-// Listeners
-inputs.forEach(el=>el.addEventListener('input', computeAll));
+  els.forEach(el=>{
+    ['input','change','keyup'].forEach(evt=>el.addEventListener(evt, computeAll));
+  });
 
-// Valores por defecto visibles al cargar
-$('capPend').value = '150.000';
-$('yearsLeft').value = '25';
-$('tinOld').value = '3,00';
-$('tinNew').value = '2,10';
-$('feePct').value = '0,15';
-$('otherCosts').value = '900';
+  // Valores iniciales
+  $('capPend').value = $('capPend').value || '150.000';
+  $('yearsLeft').value = $('yearsLeft').value || '25';
+  $('tinOld').value = $('tinOld').value || '3,00';
+  $('tinNew').value = $('tinNew').value || '2,10';
+  $('feePct').value = $('feePct').value || '0,15';
+  $('otherCosts').value = $('otherCosts').value || '900';
 
-// Primer render
-computeAll();
+  computeAll();
+})();
 </script>
 </body>
 </html>
-with open("/mnt/data/index-subrogacion.html","w",encoding="utf-8") as f:
-    f.write(html)
-"/mnt/data/index-subrogacion.html"
